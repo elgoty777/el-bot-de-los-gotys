@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nota generada</title>
+
+  <link rel="preload" href="Nota.woff" as="font" type="font/woff" crossorigin />
+
+  <style>
+    @font-face {
+      font-family: "StickyNote";
+      src: url("Nota.woff") format("woff");
+      font-display: swap;
+    }
+    body {
+      margin: 0;
+      padding-top: 50px;
+      font-family: Arial, sans-serif;
+      position: relative;
+    }
+    .corner-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      max-width: 100%;
+      height: auto;
+      loading: lazy;
+    }
+    .text-container {
+      width: 344px;
+      height: 345px;
+      position: absolute;
+      top: 20px;
+      left: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      padding: 10px;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+    .custom-text {
+      font-family: "StickyNote", cursive;
+      font-weight: 700;
+      font-size: 55px;
+      color: #15236e;
+      text-align: center;
+      width: 100%;
+      word-wrap: break-word;
+      transform: rotate(-1.5deg);
+      margin: 0;
+    }
+    #captura-btn {
+      position: absolute;
+      top: 420px;
+      left: 150px;
+      padding: 8px 16px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <img id="imagen" class="corner-image" alt="Imagen" loading="lazy" />
+  <div class="text-container">
+    <div id="texto-generado" class="custom-text"></div>
+  </div>
+  <button id="captura-btn">Descargar</button>
+
+  <script src="nota.js" defer></script>
+</body>
+</html>

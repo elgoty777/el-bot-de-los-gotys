@@ -16,6 +16,19 @@ const path = require("path")
 
 ffmpeg.setFfmpegPath(ffmpegPath)
 
+// Variable global para mantener el navegador vivo y rápido
+let browser = null;
+
+async function getBrowser() {
+    if (!browser) {
+        browser = await puppeteer.launch({ 
+            headless: "new", 
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] 
+        });
+    }
+    return browser;
+}
+
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState("auth_info")
     const { version } = await fetchLatestBaileysVersion()
@@ -48,33 +61,46 @@ async function startBot() {
         const from = msg.key.remoteJid
         const text = msg.message.conversation || msg.message.extendedTextMessage?.text || ""
 
-// --- COMANDO NOTA ---
+        // --- COMANDO REINICIAR ---
+        if (text.toLowerCase() === "reiniciar-bot" && from === "573223843642@s.whatsapp.net") {
+            await sock.sendMessage(from, { text: "🔄 Reiniciando bot..." });
+            // Limpiamos archivos temporales si existen antes de morir
+            if (fs.existsSync("input.mp4")) fs.unlinkSync("input.mp4");
+            if (fs.existsSync("output.webp")) fs.unlinkSync("output.webp");
+            
+            process.exit(0); // Railway detectará esto y reiniciará el contenedor
+        }
+
+        // --- COMANDO NOTA (Local y Rápido) ---
         if (text.startsWith("nota ")) {
             const notaTexto = text.slice(5)
-            const url = `https://grupote.lovestoblog.com/notas/nota.html?texto=${encodeURIComponent(notaTexto)}`
-
             try {
-                const browser = await puppeteer.launch({ headless: "new", args: ['--no-sandbox'] })
-                const page = await browser.newPage()
-                await page.setViewport({ width: 400, height: 400 })
-                await page.goto(url, { waitUntil: 'networkidle2' })
-                const screenshot = await page.screenshot({ clip: { x: 0, y: 0, width: 400, height: 400 } })
-                await browser.close()
+                const browserInstance = await getBrowser();
+                const page = await browserInstance.newPage();
                 
-                // Envía solo la imagen sin texto
-                await sock.sendMessage(from, { image: screenshot })
+                // Construimos la ruta local
+                const filePath = `file://${path.join(__dirname, 'nota.html')}`;
+                const url = `${filePath}?texto=${encodeURIComponent(notaTexto)}`;
+                
+                await page.goto(url, { waitUntil: 'networkidle0' });
+                await page.setViewport({ width: 400, height: 400 });
+                
+                const screenshot = await page.screenshot({ 
+                    clip: { x: 0, y: 0, width: 400, height: 400 } 
+                });
+                
+                await page.close(); // Cerramos pestaña para ahorrar RAM
+                await sock.sendMessage(from, { image: screenshot });
             } catch (error) {
-                await sock.sendMessage(from, { text: "❌ Error al generar la nota." })
+                console.error(error);
+                await sock.sendMessage(from, { text: "❌ Error al generar la nota." });
             }
         }
 
         // --- COMANDO STICKER ---
         if (text.toLowerCase() === "sticker") {
             const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage
-            if (!quoted) {
-                await sock.sendMessage(from, { text: "❌ Responde a una imagen o archivo con *sticker*" })
-                return
-            }
+            if (!quoted) return;
 
             const type = Object.keys(quoted)[0]
             const quotedContent = quoted[type]
@@ -82,10 +108,7 @@ async function startBot() {
             const isImage = type === "imageMessage" || (type === "documentMessage" && mimetype.startsWith("image/"))
             const isVideo = type === "videoMessage" || (type === "documentMessage" && mimetype.startsWith("video/"))
 
-            if (!isImage && !isVideo) {
-                await sock.sendMessage(from, { text: "❌ Formato no compatible." })
-                return
-            }
+            if (!isImage && !isVideo) return;
 
             try {
                 const buffer = await downloadMediaMessage({ message: quoted, key: msg.key }, "buffer", {}, { logger: console, reuploadRequest: sock.updateMediaMessage })

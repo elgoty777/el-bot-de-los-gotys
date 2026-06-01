@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nota generada</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: "StickyNote";
+            src: url("Nota.woff") format("woff");
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            position: relative;
+            padding-top: 50px;
+            margin: 0;
+        }
+
+        .corner-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .text-container {
+            width: 344px;
+            height: 345px;
+            max-width: 100%;
+            position: absolute;
+            top: 20px;
+            left: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+            margin: 0;
+            box-sizing: border-box;
+            overflow: hidden;
+            padding: 10px;
+        }
+
+        .custom-text {
+            font-family: "StickyNote", cursive; 
+            font-size: 55px;
+            font-weight: bold;
+            color: #15236e;
+            text-align: center;
+            width: 100%;
+            white-space: normal;
+            word-wrap: break-word;
+          
+            transform: rotate(-1.5deg);
+        }
+        #captura-btn {
+            position: absolute;
+            top: 420px;
+            left: 150px;
+        }
+    </style>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <img src="" alt="Imagen" class="corner-image" id="imagen">
+    <div class="text-container">
+        <div class="custom-text container-fluid" id="texto-generado">
+           
+        </div>
+    </div>
+
+    <script src="nota.js"></script>
+    <button id="captura-btn">Descargarr</button>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="captura.js"></script>
+</body>
+</html>
