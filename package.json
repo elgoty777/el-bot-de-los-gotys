@@ -7,6 +7,7 @@
     "start": "node bot.js"
   },
   "dependencies": {
+    "@distube/ytdl-core": "^4.16.12",
     "@whiskeysockets/baileys": "^6.7.18",
     "ffmpeg-static": "^5.2.0",
     "fluent-ffmpeg": "^2.1.3",
