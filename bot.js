@@ -16,7 +16,6 @@ const path = require("path")
 
 ffmpeg.setFfmpegPath(ffmpegPath)
 
-// Variable global para mantener el navegador vivo y rápido
 let browser = null;
 
 async function getBrowser() {
@@ -59,37 +58,41 @@ async function startBot() {
         const msg = messages[0]
         if (!msg.message) return
         const from = msg.key.remoteJid
-        const text = msg.message.conversation || msg.message.extendedTextMessage?.text || ""
+        
+        // Extracción robusta de texto para grupos y privados
+        const messageContent = msg.message.conversation || 
+                               msg.message.extendedTextMessage?.text || 
+                               msg.message.imageMessage?.caption || 
+                               msg.message.videoMessage?.caption ||
+                               (msg.message.ephemeralMessage?.message?.extendedTextMessage?.text) ||
+                               (msg.message.ephemeralMessage?.message?.imageMessage?.caption) ||
+                               "";
+        const text = messageContent.toLowerCase();
 
-        // --- COMANDO REINICIAR ---
-        if (text.toLowerCase() === "reiniciar-bot" && from === "573223843642@s.whatsapp.net") {
+        // --- COMANDO REINICIAR (Sin restricciones) ---
+        if (text === "reiniciar-bot") {
             await sock.sendMessage(from, { text: "🔄 Reiniciando bot..." });
-            // Limpiamos archivos temporales si existen antes de morir
             if (fs.existsSync("input.mp4")) fs.unlinkSync("input.mp4");
             if (fs.existsSync("output.webp")) fs.unlinkSync("output.webp");
-            
-            process.exit(0); // Railway detectará esto y reiniciará el contenedor
+            process.exit(0); 
         }
 
-        // --- COMANDO NOTA (Local y Rápido) ---
+        // --- COMANDO NOTA (Local) ---
         if (text.startsWith("nota ")) {
-            const notaTexto = text.slice(5)
+            const notaTexto = messageContent.slice(5) // Usamos el original para mantener mayúsculas
             try {
                 const browserInstance = await getBrowser();
                 const page = await browserInstance.newPage();
-                
-                // Construimos la ruta local
                 const filePath = `file://${path.join(__dirname, 'nota.html')}`;
                 const url = `${filePath}?texto=${encodeURIComponent(notaTexto)}`;
                 
                 await page.goto(url, { waitUntil: 'networkidle0' });
                 await page.setViewport({ width: 400, height: 400 });
-                
                 const screenshot = await page.screenshot({ 
                     clip: { x: 0, y: 0, width: 400, height: 400 } 
                 });
                 
-                await page.close(); // Cerramos pestaña para ahorrar RAM
+                await page.close(); 
                 await sock.sendMessage(from, { image: screenshot });
             } catch (error) {
                 console.error(error);
@@ -98,8 +101,8 @@ async function startBot() {
         }
 
         // --- COMANDO STICKER ---
-        if (text.toLowerCase() === "sticker") {
-            const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage
+        if (text === "sticker") {
+            const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage || msg.message?.ephemeralMessage?.message?.extendedTextMessage?.contextInfo?.quotedMessage
             if (!quoted) return;
 
             const type = Object.keys(quoted)[0]
