@@ -59,6 +59,7 @@ async function startBot() {
         if (!msg.message) return
         const from = msg.key.remoteJid
         
+        // Extracción robusta de texto para grupos y privados
         const messageContent = msg.message.conversation || 
                                msg.message.extendedTextMessage?.text || 
                                msg.message.imageMessage?.caption || 
@@ -68,15 +69,17 @@ async function startBot() {
                                "";
         const text = messageContent.toLowerCase();
 
-        // --- COMANDO REINICIAR ---
+        // --- COMANDO REINICIAR (Sin restricciones) ---
         if (text === "reiniciar-bot") {
             await sock.sendMessage(from, { text: "🔄 Reiniciando bot..." });
+            if (fs.existsSync("input.mp4")) fs.unlinkSync("input.mp4");
+            if (fs.existsSync("output.webp")) fs.unlinkSync("output.webp");
             process.exit(0); 
         }
 
-        // --- COMANDO NOTA ---
+        // --- COMANDO NOTA (Local) ---
         if (text.startsWith("nota ")) {
-            const notaTexto = messageContent.slice(5)
+            const notaTexto = messageContent.slice(5) // Usamos el original para mantener mayúsculas
             try {
                 const browserInstance = await getBrowser();
                 const page = await browserInstance.newPage();
@@ -120,17 +123,8 @@ async function startBot() {
                     const inputPath = path.join(__dirname, "input.mp4")
                     const outputPath = path.join(__dirname, "output.webp")
                     fs.writeFileSync(inputPath, buffer)
-                    
-                    const metadata = await new Promise((resolve) => ffmpeg.ffprobe(inputPath, (err, meta) => resolve(meta)));
-                    const isCircular = metadata?.streams[0]?.width === metadata?.streams[0]?.height;
-                    const bgColor = isCircular ? "black" : "0x00000000";
-
                     await new Promise((resolve, reject) => {
-                        ffmpeg(inputPath).outputOptions([
-                            "-vcodec libwebp", 
-                            "-vf", `scale=512:512:force_original_aspect_ratio=decrease:flags=lanczos,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=${bgColor},format=rgba,fps=10`, 
-                            "-loop 0", "-ss 00:00:00", "-t 00:00:05", "-preset default", "-an", "-vsync 0"
-                        ]).toFormat("webp").save(outputPath).on("end", resolve).on("error", reject)
+                        ffmpeg(inputPath).outputOptions(["-vcodec libwebp", "-vf", "scale=512:512:force_original_aspect_ratio=decrease:flags=lanczos,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000,format=rgba,fps=10", "-loop 0", "-ss 00:00:00", "-t 00:00:05", "-preset default", "-an", "-vsync 0"]).toFormat("webp").save(outputPath).on("end", resolve).on("error", reject)
                     })
                     await sock.sendMessage(from, { sticker: fs.readFileSync(outputPath) })
                     fs.unlinkSync(inputPath); fs.unlinkSync(outputPath)
